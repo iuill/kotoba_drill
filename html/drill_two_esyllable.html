@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>発音訓練アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #display {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+        input, button {
+            margin: 5px;
+            padding: 5px;
+        }
+        #history {
+            text-align: left;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>発音訓練アプリ - 2音節</h1>
+    <div>
+        <label for="groupA">子音:</label>
+        <input type="text" id="groupA" value="さすせそ">
+    </div>
+    <div>
+        <label for="groupB">母音:</label>
+        <input type="text" id="groupB" value="あいうえお">
+    </div>
+    <div>
+        <label for="waitTime">待機時間 (ミリ秒):</label>
+        <input type="number" id="waitTime" value="2000">
+    </div>
+    <div>
+        <label>モード:</label>
+        <input type="radio" id="forwardMode" name="mode" value="forward" checked>
+        <label for="forwardMode">順再生</label>
+        <input type="radio" id="reverseMode" name="mode" value="reverse">
+        <label for="reverseMode">逆再生</label>
+        <input type="radio" id="randomMode" name="mode" value="random">
+        <label for="randomMode">ランダム</label>
+    </div>
+    <button id="controlButton" onclick="toggleTraining()">スタート</button>
+    <div id="display"></div>
+    <div id="history"></div>
+
+    <script>
+        let intervalId;
+        let isTraining = false;
+        let startTime;
+        let trainingHistory = [];
+
+        function toggleTraining() {
+            const button = document.getElementById('controlButton');
+            if (isTraining) {
+                stopTraining();
+                button.textContent = 'スタート';
+            } else {
+                clearTrainingHistory(); // 新しい訓練を開始する前に履歴をクリア
+                startTraining();
+                button.textContent = 'ストップ';
+                startTime = new Date().getTime();
+                displayTrainingStart();
+            }
+            isTraining = !isTraining;
+        }
+        
+        function clearTrainingHistory() {
+            trainingHistory = [];
+            const historyElement = document.getElementById('history');
+            historyElement.innerHTML = '';
+        }
+
+        function startTraining() {
+            clearInterval(intervalId);
+            const groupA = document.getElementById('groupA').value.split('');
+            const groupB = document.getElementById('groupB').value.split('');
+            const waitTime = parseInt(document.getElementById('waitTime').value);
+            const display = document.getElementById('display');
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+
+            let i = 0;
+            let j = 0;
+
+            function showNextCombination() {
+                let combination;
+                if (mode === 'forward') {
+                    combination = groupA[i] + groupB[j];
+                } else if (mode === 'reverse') {
+                    combination = groupB[j] + groupA[i];
+                } else { // ランダムモード
+                    const randomOrder = Math.floor(Math.random() * 2); // 0 or 1
+                    if (randomOrder === 0) {
+                        combination = groupA[Math.floor(Math.random() * groupA.length)] + groupB[Math.floor(Math.random() * groupB.length)];
+                    } else {
+                        combination = groupB[Math.floor(Math.random() * groupB.length)] + groupA[Math.floor(Math.random() * groupA.length)];
+                    }
+                }
+                display.textContent = combination;
+                trainingHistory.unshift(combination);
+                displayTrainingHistory();
+
+                j++;
+                if (j >= groupB.length) {
+                    j = 0;
+                    i++;
+                    if (i >= groupA.length) {
+                        i = 0;
+                    }
+                }
+            }
+
+            showNextCombination();
+            intervalId = setInterval(showNextCombination, waitTime);
+        }
+
+        function stopTraining() {
+            clearInterval(intervalId);
+            const endTime = new Date().getTime();
+            displayTrainingEnd(endTime);
+        }
+
+        function displayTrainingStart() {
+            const historyElement = document.getElementById('history');
+            historyElement.innerHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+        }
+
+        function displayTrainingHistory() {
+            const historyElement = document.getElementById('history');
+            let historyHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+            
+            trainingHistory.forEach((combination, index) => {
+                const number = trainingHistory.length - index;
+                historyHTML += `${number}. ${combination}<br>`;
+            });
+
+            historyElement.innerHTML = historyHTML;
+        }
+
+        function displayTrainingEnd(endTime) {
+            const historyElement = document.getElementById('history');
+            const duration = (endTime - startTime) / 1000;
+            const minutes = Math.floor(duration / 60);
+            const seconds = Math.floor(duration % 60);
+            const trainingCount = trainingHistory.length;
+
+            let historyHTML = historyElement.innerHTML;
+            historyHTML += `終了時刻: ${new Date(endTime).toLocaleString()}<br>`;
+            historyHTML += `実行時間: ${minutes}分${seconds}秒<br>`;
+            historyHTML += `実施回数: ${trainingCount}回<br>`;
+
+            historyElement.innerHTML = historyHTML;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>発音訓練アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #display {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+        input, button, select {
+            margin: 5px;
+            padding: 5px;
+        }
+        #history {
+            text-align: left;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>発音訓練アプリ - 単語</h1>
+    <div>
+        <label for="soundSelect">音:</label>
+        <select id="soundSelect">
+            <!-- オプションは動的に生成されます -->
+        </select>
+    </div>
+    <div>
+        <label>位置:</label>
+        <input type="radio" id="wordStart" name="position" value="語頭" checked>
+        <label for="wordStart">語頭</label>
+        <input type="radio" id="wordEnd" name="position" value="語尾">
+        <label for="wordEnd">語尾</label>
+        <input type="radio" id="wordMiddle" name="position" value="語中">
+        <label for="wordMiddle">語中</label>
+        <input type="radio" id="randomPosition" name="position" value="ランダム">
+        <label for="randomPosition">ランダム</label>
+    </div>
+    <div>
+        <label for="waitTime">1文字あたりの待機時間 (ミリ秒):</label>
+        <input type="number" id="waitTime" value="700">
+    </div>
+    <button id="controlButton" onclick="toggleTraining()">スタート</button>
+    <div id="display"></div>
+    <div id="history"></div>
+
+    <script>
+        let intervalId;
+        let isTraining = false;
+        let startTime;
+        let trainingHistory = [];
+        let wordList;
+        let currentWords = [];
+
+        // ページ読み込み時にJSONファイルを取得し、音の選択肢を生成
+        fetch('word_list.json')
+            .then(response => response.json())
+            .then(data => {
+                wordList = data;
+                populateSoundSelect();
+            })
+            .catch(error => console.error('Error loading word list:', error));
+
+        function populateSoundSelect() {
+            const soundSelect = document.getElementById('soundSelect');
+            soundSelect.innerHTML = ''; // 既存のオプションをクリア
+            
+            for (const sound in wordList) {
+                const option = document.createElement('option');
+                option.value = sound;
+                option.textContent = sound;
+                soundSelect.appendChild(option);
+            }
+        }
+
+        function toggleTraining() {
+            const button = document.getElementById('controlButton');
+            if (isTraining) {
+                stopTraining();
+                button.textContent = 'スタート';
+            } else {
+                clearTrainingHistory();
+                startTraining();
+                button.textContent = 'ストップ';
+                startTime = new Date().getTime();
+                displayTrainingStart();
+            }
+            isTraining = !isTraining;
+        }
+        
+        function clearTrainingHistory() {
+            trainingHistory = [];
+            const historyElement = document.getElementById('history');
+            historyElement.innerHTML = '';
+        }
+
+        function startTraining() {
+            clearInterval(intervalId);
+            const sound = document.getElementById('soundSelect').value;
+            const position = document.querySelector('input[name="position"]:checked').value;
+            const baseWaitTime = parseInt(document.getElementById('waitTime').value);
+            const display = document.getElementById('display');
+
+            if (!wordList || Object.keys(wordList).length === 0) {
+                alert('単語リストの読み込みが完了していないか、リストが空です。');
+                return;
+            }
+
+            currentWords = getWords(sound, position);
+            let index = 0;
+
+            function showNextWord() {
+                if (currentWords.length === 0) {
+                    display.textContent = '単語がありません';
+                    return;
+                }
+                const word = currentWords[index];
+                display.textContent = word;
+                trainingHistory.unshift(word);
+                displayTrainingHistory();
+
+                index = (index + 1) % currentWords.length;
+
+                // 次の単語の待機時間を計算
+                const nextWord = currentWords[(index + 1) % currentWords.length];
+                const waitTime = baseWaitTime * word.length;
+                clearInterval(intervalId);
+                intervalId = setTimeout(showNextWord, waitTime);
+            }
+
+            showNextWord();
+        }
+
+        function getWords(sound, position) {
+            if (position === 'ランダム') {
+                const allPositions = ['語頭', '語尾', '語中'];
+                position = allPositions[Math.floor(Math.random() * allPositions.length)];
+            }
+            return wordList[sound][position];
+        }
+
+        function stopTraining() {
+            clearInterval(intervalId);
+            const endTime = new Date().getTime();
+            displayTrainingEnd(endTime);
+        }
+
+        function displayTrainingStart() {
+            const historyElement = document.getElementById('history');
+            historyElement.innerHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+        }
+
+        function displayTrainingHistory() {
+            const historyElement = document.getElementById('history');
+            let historyHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+            
+            trainingHistory.forEach((word, index) => {
+                const number = trainingHistory.length - index;
+                historyHTML += `${number}. ${word}<br>`;
+            });
+
+            historyElement.innerHTML = historyHTML;
+        }
+
+        function displayTrainingEnd(endTime) {
+            const historyElement = document.getElementById('history');
+            const duration = (endTime - startTime) / 1000;
+            const minutes = Math.floor(duration / 60);
+            const seconds = Math.floor(duration % 60);
+            const trainingCount = trainingHistory.length;
+
+            let historyHTML = historyElement.innerHTML;
+            historyHTML += `終了時刻: ${new Date(endTime).toLocaleString()}<br>`;
+            historyHTML += `実行時間: ${minutes}分${seconds}秒<br>`;
+            historyHTML += `実施回数: ${trainingCount}回<br>`;
+
+            historyElement.innerHTML = historyHTML;
+        }
+    </script>
+</body>
+</html>
