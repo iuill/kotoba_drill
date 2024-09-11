@@ -78,6 +78,12 @@
                 option.textContent = sound;
                 soundSelect.appendChild(option);
             }
+
+            // ランダムオプションを追加
+            const randomOption = document.createElement('option');
+            randomOption.value = 'ランダム';
+            randomOption.textContent = 'ランダム';
+            soundSelect.appendChild(randomOption);
         }
 
         function toggleTraining() {
@@ -114,7 +120,7 @@
             }
 
             currentWords = getWords(sound, position);
-            let index = 0;
+            let index = Math.floor(Math.random() * currentWords.length);
 
             function showNextWord() {
                 if (currentWords.length === 0) {
@@ -126,7 +132,8 @@
                 trainingHistory.unshift(word);
                 displayTrainingHistory();
 
-                index = (index + 1) % currentWords.length;
+                // 次のインデックスをランダムに選択
+                index = Math.floor(Math.random() * currentWords.length);
 
                 // 次の単語の待機時間を計算
                 const nextWord = currentWords[(index + 1) % currentWords.length];
@@ -139,11 +146,21 @@
         }
 
         function getWords(sound, position) {
-            if (position === 'ランダム') {
-                const allPositions = ['語頭', '語尾', '語中'];
-                position = allPositions[Math.floor(Math.random() * allPositions.length)];
+            if (sound === 'ランダム' && position === 'ランダム') {
+                // すべての音かつすべての位置の単語を含める
+                return Object.values(wordList).flatMap(soundWords => 
+                    Object.values(soundWords).flat()
+                );
+            } else if (sound === 'ランダム') {
+                // すべての音を含め、指定された位置の単語を返す
+                return Object.values(wordList).flatMap(soundWords => soundWords[position]);
+            } else if (position === 'ランダム') {
+                // 指定された音のすべての位置の単語を含める
+                return Object.values(wordList[sound]).flat();
+            } else {
+                // 指定された音と位置の単語を返す
+                return wordList[sound][position];
             }
-            return wordList[sound][position];
         }
 
         function stopTraining() {
