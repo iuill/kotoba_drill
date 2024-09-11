@@ -44,8 +44,11 @@
         <label for="randomPosition">ランダム</label>
     </div>
     <div>
+        <label for="initWaitTime">読み取り時間 (ミリ秒):</label>
+        <input type="number" id="initWaitTime" value="1000">
+        <br>
         <label for="waitTime">1文字あたりの待機時間 (ミリ秒):</label>
-        <input type="number" id="waitTime" value="700">
+        <input type="number" id="waitTime" value="400">
     </div>
     <button id="controlButton" onclick="toggleTraining()">スタート</button>
     <div id="display"></div>
@@ -111,6 +114,7 @@
             clearInterval(intervalId);
             const sound = document.getElementById('soundSelect').value;
             const position = document.querySelector('input[name="position"]:checked').value;
+            const initWaitTime = parseInt(document.getElementById('initWaitTime').value);
             const baseWaitTime = parseInt(document.getElementById('waitTime').value);
             const display = document.getElementById('display');
 
@@ -137,7 +141,7 @@
 
                 // 次の単語の待機時間を計算
                 const nextWord = currentWords[(index + 1) % currentWords.length];
-                const waitTime = baseWaitTime * word.length;
+                const waitTime = initWaitTime + (baseWaitTime * word.length);
                 clearInterval(intervalId);
                 intervalId = setTimeout(showNextWord, waitTime);
             }
@@ -171,12 +175,12 @@
 
         function displayTrainingStart() {
             const historyElement = document.getElementById('history');
-            historyElement.innerHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+            historyElement.innerHTML = `<h2>表示履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
         }
 
         function displayTrainingHistory() {
             const historyElement = document.getElementById('history');
-            let historyHTML = `<h2>訓練履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
+            let historyHTML = `<h2>表示履歴</h2>開始時刻: ${new Date(startTime).toLocaleString()}<br>`;
             
             trainingHistory.forEach((word, index) => {
                 const number = trainingHistory.length - index;
